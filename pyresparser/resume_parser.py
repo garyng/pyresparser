@@ -12,10 +12,11 @@ from . import utils
 class ResumeParser(object):
 
     def __init__(
-        self,
-        resume,
-        skills_file=None,
-        custom_regex=None
+            self,
+            resume_path=None,
+            raw_text=None,
+            skills_file=None,
+            custom_regex=None
     ):
         nlp = spacy.load('en_core_web_sm')
         custom_nlp = spacy.load(os.path.dirname(os.path.abspath(__file__)))
@@ -35,12 +36,16 @@ class ResumeParser(object):
             'no_of_pages': None,
             'total_experience': None,
         }
-        self.__resume = resume
-        if not isinstance(self.__resume, io.BytesIO):
-            ext = os.path.splitext(self.__resume)[1].split('.')[1]
-        else:
-            ext = self.__resume.name.split('.')[1]
-        self.__text_raw = utils.extract_text(self.__resume, '.' + ext)
+        self.__text_raw = ''
+        if raw_text:
+            self.__text_raw = raw_text
+        if resume_path:
+            if not isinstance(resume_path, io.BytesIO):
+                ext = os.path.splitext(resume_path)[1].split('.')[1]
+            else:
+                ext = resume_path.name.split('.')[1]
+            self.__text_raw = utils.extract_text(resume_path, '.' + ext)
+
         self.__text = ' '.join(self.__text_raw.split())
         self.__nlp = nlp(self.__text)
         self.__custom_nlp = custom_nlp(self.__text_raw)
@@ -52,16 +57,16 @@ class ResumeParser(object):
 
     def __get_basic_details(self):
         cust_ent = utils.extract_entities_wih_custom_model(
-                            self.__custom_nlp
-                        )
+            self.__custom_nlp
+        )
         name = utils.extract_name(self.__nlp, matcher=self.__matcher)
         email = utils.extract_email(self.__text)
         mobile = utils.extract_mobile_number(self.__text, self.__custom_regex)
         skills = utils.extract_skills(
-                    self.__nlp,
-                    self.__noun_chunks,
-                    self.__skills_file
-                )
+            self.__nlp,
+            self.__noun_chunks,
+            self.__skills_file
+        )
         # edu = utils.extract_education(
         #               [sent.string.strip() for sent in self.__nlp.sents]
         #       )
@@ -118,9 +123,6 @@ class ResumeParser(object):
                 self.__details['total_experience'] = 0
         except KeyError:
             self.__details['total_experience'] = 0
-        self.__details['no_of_pages'] = utils.get_number_of_pages(
-                                            self.__resume
-                                        )
         return
 
 
